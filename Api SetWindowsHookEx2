@@ -1,0 +1,100 @@
+Private Declare Function LoadCursor _
+    Lib "user32" _
+        Alias "LoadCursorA" ( _
+            ByVal hInstance As Long, _
+            ByVal lpCursorName As Long) _
+As Long
+Public Declare Function SetWindowsHookEx _
+    Lib "user32" _
+    Alias "SetWindowsHookExA" ( _
+        ByVal idHook As Long, _
+        ByVal lpfn As Long, _
+        ByVal hmod As Long, _
+        ByVal dwThreadId As Long) _
+As Long
+Public Declare Function UnhookWindowsHookEx _
+    Lib "user32" ( _
+        ByVal hHook As Long) _
+As Long
+Public Declare Function CallNextHookEx _
+    Lib "user32" ( _
+        ByVal hHook As Long, _
+        ByVal nCode As Long, _
+        ByVal wParam As Long, _
+         lParam As Any) _
+As Long
+Declare Function GetCursor _
+    Lib "user32" () _
+As Long
+Private Declare Function DestroyCursor _
+    Lib "user32" ( _
+        ByVal hCursor As Long) _
+As Long
+Private Type POINTAPI
+     x As Long
+     y As Long
+End Type
+Private Type MSLLHOOKSTRUCT
+      pt As POINTAPI
+      mouseData As Long
+      Flags As Long
+      time As Long
+      dwExtraInfo As Long
+End Type
+Private Const IDC_ARROW = 32512&
+Private Const WH_MOUSE_LL As Long = 14
+Private Const WM_LBUTTONDOWN As Long = &H201
+Private Const WM_LBUTTONUP As Long = &H202
+Private Const WM_MOUSEMOVE As Long = &H200
+Private Const WM_MOUSEWHEEL As Long = &H20A
+Private Const WM_RBUTTONDOWN As Long = &H204
+Private Const WM_RBUTTONUP As Long = &H205
+Private Const HC_ACTION = 0
+Private IHook As Long
+Private hCursor As Long
+Private Ican As Boolean
+'-------设置钩子-----------
+Public Sub EnableHook()
+    If IHook = 0 Then
+         IHook = SetWindowsHookEx(WH_MOUSE_LL, AddressOf HookProc, Application.hInstance, 0)
+    End If
+End Sub
+'-------取消钩子-----------
+Public Sub FreeHook()
+    If IHook <> 0 Then
+        Call UnhookWindowsHookEx(IHook)
+         IHook = 0
+    End If
+End Sub
+
+
+
+Public Function HookProc(ByVal nCode As Long, ByVal wParam As Long, ByRef lParam As MSLLHOOKSTRUCT) As Long
+    On Error Resume Next
+    If nCode < 0 Then
+         HookProc = CallNextHookEx(IHook, nCode, wParam, lParam)
+        Exit Function
+    End If
+     hCursor = LoadCursor(Application.hInstance, 309&)
+    If nCode = HC_ACTION Then
+        Select Case wParam
+            Case WM_LBUTTONDOWN, WM_RBUTTONDOWN
+                If hCursor = GetCursor Then
+                     Debug.Print "正在进行单元格拖放"
+                     Ican = True
+                Else
+                     Ican = False
+                End If
+            Case WM_LBUTTONUP, WM_RBUTTONUP
+                If Ican = True Then
+                     Debug.Print "单元格拖放完成"
+                     Ican = False
+                End If
+            Case WM_MOUSEMOVE
+                If hCursor = GetCursor Then Debug.Print "即将进行单元格拖放"
+                If LoadCursor(ByVal 0&, IDC_ARROW) = GetCursor And Ican = True Then Debug.Print "正在进行单元格拖放"
+        End Select
+    End If
+     DestroyCursor hCursor
+     HookProc = CallNextHookEx(IHook, nCode, wParam, lParam)
+End Function
