@@ -1,0 +1,56 @@
+Private sButton1 As String
+Private sButton2 As String
+Private sCaption As String
+Private sText As String
+Private Const MB_ICONQUESTION As Long = &H20&
+Private Const MB_OKCANCEL As Long = &H1&
+Private Const MB_TASKMODAL As Long = &H2000&
+Private Const IDPROMPT = &HFFFF&
+Private Const WH_CBT = 5
+Private Const GWL_HINSTANCE = (-6)
+Private Const HCBT_ACTIVATE = 5
+Private Type MSGBOX_HOOK_PARAMS
+hwndOwner As Long
+hHook As Long
+End Type
+Private MSGHOOK As MSGBOX_HOOK_PARAMS
+Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+Private Declare Function GetDesktopWindow Lib "user32" () As Long
+Private Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
+Private Declare Function MessageBox Lib "user32" Alias "MessageBoxA" (ByVal hwnd As Long, ByVal lpText As String, ByVal lpCaption As String, ByVal wType As Long) As Long
+Private Declare Function SetDlgItemText Lib "user32" Alias "SetDlgItemTextA" (ByVal hDlg As Long, ByVal nIDDlgItem As Long, ByVal lpString As String) As Long
+Private Declare Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExA" (ByVal idHook As Long, ByVal lpfn As Long, ByVal hmod As Long, ByVal dwThreadId As Long) As Long
+Private Declare Function SetWindowText Lib "user32" Alias "SetWindowTextA" (ByVal hwnd As Long, ByVal lpString As String) As Long
+Private Declare Function UnhookWindowsHookEx Lib "user32" (ByVal hHook As Long) As Long
+
+Private Function myMessageBox(hwndThreadOwner As Long, hwndOwner As Long, strCaption As String, strText As String, strButton1 As String, strButton2 As String) As Long
+sButton1 = strButton1
+sButton2 = strButton2
+sCaption = strCaption
+sText = strText
+Dim hInstance As Long, hThreadId As Long
+hInstance = GetWindowLong(hwndThreadOwner, GWL_HINSTANCE)
+hThreadId = GetCurrentThreadId()
+With MSGHOOK
+.hwndOwner = hwndOwner
+.hHook = SetWindowsHookEx(WH_CBT, AddressOf MsgBoxHookProc, hInstance, hThreadId)
+End With
+myMessageBox = MessageBox(hwndOwner, Space$(120), Space$(120), MB_OKCANCEL Or MB_ICONQUESTION)
+End Function
+Private Function MsgBoxHookProc(ByVal uMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+If uMsg = HCBT_ACTIVATE Then
+SetWindowText wParam, sCaption
+SetDlgItemText wParam, 1, sButton1
+SetDlgItemText wParam, 2, sButton2
+SetDlgItemText wParam, &HFFFF&, sText
+UnhookWindowsHookEx MSGHOOK.hHook
+End If
+MsgBoxHookProc = False
+End Function
+
+Sub Macro1()
+Dim msg As Long
+msg = myMessageBox(0, GetDesktopWindow(), "Question", "Which one do you love,Word or Excel?", "Excel", "Word")
+If msg = 1 Then myMessageBox 0, GetDesktopWindow(), "I love Excel", "Which Version?", "Excel 97", "Excel 2007"
+If msg = 2 Then myMessageBox 0, GetDesktopWindow(), "I love Word", "Which Version?", "Word 97", "Word 2007"
+End Sub
