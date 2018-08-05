@@ -1,0 +1,82 @@
+'禁止自定义弹窗'
+
+Option Explicit
+' ************************************************************************
+' Routine Name : (Private in Document Module) Sub Workbook_BeforeClose
+' Written By   : Stanley Pan
+' Programmer   : Stanley Pan[SZ-5509-TESA]
+' Date Writen  : 2006-09-07 22:56:44
+' Inputs       : Cancel:Boolean -
+' Outputs      : N/A
+' Description  :自由代码,转载时请保留备注信息.
+'              :
+'              :
+' Called By    :
+' ************************************************************************
+Private Const WH_MOUSE_LL = 14
+Private Const HC_ACTION = 0&
+
+Public Const WM_MOUSEFIRST = &H200
+Public Const WM_MOUSEMOVE = &H200
+Public Const WM_LBUTTONDOWN = &H201
+Public Const WM_LBUTTONUP = &H202
+Public Const WM_LBUTTONDBLCLK = &H203
+Public Const WM_RBUTTONDOWN = &H204
+Public Const WM_RBUTTONUP = &H205
+Public Const WM_RBUTTONDBLCLK = &H206
+Public Const WM_MBUTTONDOWN = &H207
+Public Const WM_MBUTTONUP = &H208
+Public Const WM_MBUTTONDBLCLK = &H209
+Public Const WM_MOUSELAST = &H209
+Type POINTAPI
+   x As Long
+   y As Long
+End Type
+Type MOUSEHOOKSTRUCT
+   pt As POINTAPI
+   hwnd As Long
+   wHitTestCode As Long
+   dwExtraInfo As Long
+End Type
+Private Declare Function WindowFromPoint Lib "User32" (ByVal xPoint As Long, ByVal yPoint As Long) As Long
+Private Declare Function SetWindowsHookEx Lib "User32" Alias "SetWindowsHookExA" (ByVal idHook As Long, ByVal lpfn As Long, ByVal hmod As Long, ByVal dwThreadId As Long) As Long
+Private Declare Function UnhookWindowsHookEx Lib "User32" (ByVal hHook As Long) As Long
+Private Declare Function CallNextHookEx Lib "User32" (ByVal hHook As Long, ByVal nCode As Long, ByVal wParam As Long, ByVal lparam As Long) As Long
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (pDest As Any, pSource As Any, ByVal cb As Long)
+Private Declare Function GetClassName Lib "User32" Alias "GetClassNameA" (ByVal hwnd As Long, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
+Public m_Hook As Long
+
+Public Sub Hook()
+   m_Hook = SetWindowsHookEx(WH_MOUSE_LL, AddressOf LowLevelMouseProc, Application.Hinstance, 0&)
+   'Application.Hinstance 用0代替或用API函数取得也行
+End Sub
+
+Public Sub UnHook()
+   UnhookWindowsHookEx m_Hook
+End Sub
+
+Public Function LowLevelMouseProc(ByVal nCode As Long, ByVal wParam As Long, ByVal lparam As Long) As Long
+Dim MouseData As MOUSEHOOKSTRUCT
+   'Prevent Right-Click in excel Menu!
+   If (nCode = HC_ACTION And (wParam = WM_LBUTTONDOWN Or wParam = WM_RBUTTONDOWN)) Then
+
+      Dim sClassName As String
+      Dim sTestClass As String
+      sTestClass = "EXCEL2"   '菜单空白区域的类为“EXCEL2", 用工具可查到,其实就是要限制的类名.
+      sClassName = String$(256, 0)
+
+      CopyMemory MouseData, ByVal lparam, Len(MouseData)   '从内存中取得信息
+
+      '取得当前位置窗体的句柄.
+      If GetClassName(WindowFromPoint(MouseData.pt.x, MouseData.pt.y), sClassName, Len(sClassName)) > 0 Then
+         If Left$(sClassName, Len(sTestClass)) = sTestClass Then
+            LowLevelMouseProc = 1   '禁止成功      'O 为不成功
+            Exit Function
+         End If
+      End If
+   End If
+
+   LowLevelMouseProc = CallNextHookEx(m_Hook, nCode, wParam, lparam)
+
+End Function
+
