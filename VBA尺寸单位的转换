@@ -1,0 +1,59 @@
+'VBA尺寸单位的转换,这是论坛上winland的转换函数(借用一下,呵呵^V^),请大家参考他的贴子
+'http://club.excelhome.net/dispbbs.asp?BoardID=2&ID=203573&replyID=&skin=0
+Private Const HORZRES = 8
+Private Const VERTRES = 10
+Private Const LOGPIXELSX = 88
+Private Const LOGPIXELSY = 90
+Private Const TWIPSPERINCH = 1440
+
+Public Declare Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
+Public Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+Public Declare Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
+Function getDPI(bX As Boolean) As Integer  '获取屏幕分辨率
+    Dim hDC As Long, RetVal As Long
+    hDC = GetDC(0)
+    If bX = True Then
+        getDPI = GetDeviceCaps(hDC, LOGPIXELSX)
+    Else
+        getDPI = GetDeviceCaps(hDC, LOGPIXELSY)
+    End If
+    RetVal = ReleaseDC(0, hDC)
+End Function
+Function Pixel2TwipX(x As Long) As Long   '水平方向Pixel转Twip
+    Pixel2TwipX = (x / getDPI(True)) * TWIPSPERINCH
+End Function
+Function Pixel2TwipY(x As Long) As Long   '垂直方向Pixel转Twip
+    Pixel2TwipY = (x / getDPI(False)) * TWIPSPERINCH
+End Function
+Function Pixel2PointX(x As Long) As Long  '水平方向Pixel转Point
+    Pixel2PointX = Pixel2TwipX(x) / 20
+End Function
+Function Pixel2PointY(x As Long) As Long  '垂直方向Pixel转Point
+    Pixel2PointY = Pixel2TwipY(x) / 20
+End Function
+Function Twip2PixelX(x As Long) As Long   '水平方向Twip转Pixel
+    Twip2PixelX = x / TWIPSPERINCH * getDPI(True)
+End Function
+Function Twip2PixelY(x As Long) As Long   '垂直方向Twip转Pixel
+    Twip2PixelY = x / TWIPSPERINCH * getDPI(False)
+End Function
+Function Point2PixelX(x As Long) As Long  '水平方向Point转Pixel
+    Point2PixelX = Twip2PixelX(x * 20)
+End Function
+Function Point2PixelY(x As Long) As Long  '垂直方向Point转Pixel
+    Point2PixelY = Twip2PixelY(x * 20)
+End Function
+Function getScreenX() As Long     '获取屏幕宽
+    Dim hDC As Long, RetVal As Long
+    hDC = GetDC(0)
+    getScreenX = GetDeviceCaps(hDC, HORZRES)
+    RetVal = ReleaseDC(0, hDC)
+End Function
+Function getScreenY() As Long     '获取屏幕高
+    Dim hDC As Long, RetVal As Long
+    hDC = GetDC(0)
+    getScreenY = GetDeviceCaps(hDC, VERTRES)
+    RetVal = ReleaseDC(0, hDC)
+End Function
+
+
