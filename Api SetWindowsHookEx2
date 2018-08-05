@@ -1,3 +1,5 @@
+''DebugPrint 当前鼠标拖动单元格时的状态
+
 Private Declare Function LoadCursor _
     Lib "user32" _
         Alias "LoadCursorA" ( _
