@@ -1,3 +1,4 @@
+''记录Excel按键
 Public hHook As Long
 Public Declare Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExA" _
 (ByVal idHook As Long, ByVal lpfn As Long, ByVal hmod As Long, ByVal dwThreadId As Long) As Long
