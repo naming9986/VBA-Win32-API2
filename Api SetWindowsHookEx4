@@ -1,0 +1,54 @@
+'VB全局钩子
+'WH_KEYBOARD_LL这个常数表示键盘全局钩子 AddressOf MyKBHook求出钩子函数MyKBHook的内存地址
+'App.hInstance是本程序的模块句柄，也就是钩子函数所在的模块，最后一个参数0表示全局钩子
+Public hHook As Long '用来存放钩子的句柄
+Declare Function UnhookWindowsHookEx Lib "user32" (ByVal hHook As Long) As Long
+Declare Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExA" _
+(ByVal idHook As Long, ByVal lpfn As Long, ByVal hmod As Long, ByVal dwThreadId As Long) As Long
+Declare Function CallNextHookEx Lib "user32" _
+(ByVal hHook As Long, ByVal ncode As Long, ByVal wParam As Long, lParam As Long) As Long
+Public Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" _
+(Destination As Any, Source As Any, ByVal Length As Long)
+Public a As Long
+Public Type EVENTMSG
+    vKey As Long
+    sKey As Long
+    flag As Long
+    time As Long
+End Type
+    
+Public mymsg As EVENTMSG
+Public Const WH_KEYBOARD_LL = 13
+Public Const WM_KEYDOWN = &H100
+
+Public Function MyKBHook(ByVal ncode As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+'这些参数在不同钩子中具有不同含义，在这里ncode 是类型代码
+If ncode = 0 Then
+  If wParam = WM_KEYDOWN Then
+  '在这里wParam 表示键盘事件，具体的按键信息保存在lParam 指针所指向的内存区域中
+  '把内存中lParam 指针所指向的数据复制到mymsg这个自定义类型
+  CopyMemory mymsg, ByVal lParam, Len(mymsg)
+  
+  '显示按下的键
+  MsgBox Chr(mymsg.vKey)
+  
+  End If
+End If
+
+'将消息传给下一个钩子，如果你想锁定键盘，只需要把这句改成MyKBHook =-1，表示吃掉这个消息，这样键盘就输入不了了:-)
+MyKBHook = CallNextHookEx(hHook, ncode, wParam, lParam)
+End Function
+
+Sub ADDHOOK()
+hHook = SetWindowsHookEx(WH_KEYBOARD_LL, AddressOf MyKBHook, Application.Hinstance, 0)
+
+If hHook = 0 Then
+'如果钩子注册失败会返回0，否则返回注册的钩子句柄
+    MsgBox "钩子注册失败"
+End If
+End Sub
+
+'卸钩子
+Sub UNHOOK()
+UnhookWindowsHookEx hHook
+End Sub
