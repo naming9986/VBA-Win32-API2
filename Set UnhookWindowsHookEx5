@@ -1,0 +1,82 @@
+'屏蔽保护单元格双击下的弹窗'
+
+'//设置钩子函数
+Public Declare Function SetWindowsHookEx _
+    Lib "user32" _
+    Alias "SetWindowsHookExA" ( _
+        ByVal idHook As Long, _
+        ByVal lpfn As Long, _
+        ByVal hmod As Long, _
+        ByVal dwThreadId As Long) _
+As Long
+'//结束钩子
+Public Declare Function UnhookWindowsHookEx _
+    Lib "user32" ( _
+        ByVal hHook As Long) _
+As Long
+'//下一个钩子
+Public Declare Function CallNextHookEx _
+    Lib "user32" ( _
+        ByVal hHook As Long, _
+        ByVal nCode As Long, _
+        ByVal wParam As Long, _
+        lParam As Any) _
+As Long
+'//取得当前线程的ID
+Public Declare Function GetCurrentThreadId _
+    Lib "kernel32" () _
+As Long
+'//取得窗体标题或控件内容
+Public Declare Function GetWindowText _
+    Lib "user32" _
+    Alias "GetWindowTextA" ( _
+    ByVal hwnd As Long, _
+    ByVal lpString As String, _
+    ByVal cch As Long) _
+As Long
+'//发送消息
+Private Declare Function PostMessage _
+    Lib "user32" _
+    Alias "PostMessageA" ( _
+        ByVal hwnd As Long, _
+        ByVal wMsg As Long, _
+        ByVal wParam As Long, _
+        lParam As Any) _
+As Long
+Public Const WM_CLOSE = &H10
+Public Const HCBT_ACTIVATE = 5
+Public Const WH_CBT = 5
+Public IHook As Long
+Public IThreadId As Long
+Public WindowText As String
+Public IText As String
+'---回调---
+Public Function HookProc_Excel(ByVal nCode As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+    If nCode < 0 Then
+        HookProc_Excel = CallNextHookEx(IHook, nCode, wParam, lParam)
+        Exit Function
+    End If
+    If nCode = HCBT_ACTIVATE Then
+        WindowText = String(255, Chr(0))
+        GetWindowText wParam, WindowText, 255
+        IText = Left(WindowText, InStr(WindowText, vbNullChar) - 1)
+        '要拦截其他对话框请将 "数据有效性"修改为其他内置对话框标题。这里不要用SendMessage函数。
+        If IText = "Microsoft Excel" Then PostMessage wParam, WM_CLOSE, 0&, 0&
+    End If
+    HookProc_Excel = CallNextHookEx(IHook, nCode, wParam, lParam)
+End Function
+
+'-------设置钩子-----------
+Private Sub Workbook_Open()
+    If IHook = 0 Then
+        IThreadId = GetCurrentThreadId
+        IHook = SetWindowsHookEx(WH_CBT, AddressOf HookProc_Excel, Application.Hinstance, IThreadId)
+    End If
+End Sub
+'-------取消钩子-----------
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    If IHook <> 0 Then
+        Call UnhookWindowsHookEx(IHook)
+        IHook = 0
+    End If
+End Sub
