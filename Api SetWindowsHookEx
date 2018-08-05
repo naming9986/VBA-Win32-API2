@@ -1,0 +1,34 @@
+Public hHook As Long
+Public Declare Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExA" _
+(ByVal idHook As Long, ByVal lpfn As Long, ByVal hmod As Long, ByVal dwThreadId As Long) As Long
+Public Declare Function UnhookWindowsHookEx Lib "user32" (ByVal hHook As Long) As Long
+Public Declare Function CallNextHookEx Lib "user32" (ByVal hHook As Long, ByVal ncode As Long, ByVal wParam As Long, lParam As Any) As Long
+Public Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+Public Declare Function GetKeyNameText Lib "user32" Alias "GetKeyNameTextA" (ByVal lParam As Long, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Const WH_KEYBOARD = 2
+Sub BeginHK()
+    i = GetCurrentThreadId
+    hHook = SetWindowsHookEx(WH_KEYBOARD, AddressOf KeyboardProc, 0, i)
+End Sub
+Public Function KeyboardProc(ByVal code As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+    If code < 0 Then
+    KeyboardProc = CallNextHookEx(hHook, code, wParam, lParam)
+    Else
+        Dim sKeyName As String
+        sKeyName = Space(256)
+        bLen = 256
+        ResultLen = GetKeyNameText(lParam, sKeyName, bLen)
+        Dim oWK As Worksheet
+        Set oWK = Excel.ActiveSheet
+        i = oWK.Range("a65536").End(xlUp).Row + 1
+        If i Mod 2 = 0 Then
+            oWK.Cells(i, 1) = "你按下了" & Left(sKeyName, ResultLen) & "键"
+        Else
+            oWK.Cells(i, 1) = "你弹起了" & Left(sKeyName, ResultLen) & "键"
+        End If
+        KeyboardProc = 1
+    End If
+End Function
+Sub EndHK()
+    UnhookWindowsHookEx hHook
+End Sub
