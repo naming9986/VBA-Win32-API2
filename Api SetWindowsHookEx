@@ -8,7 +8,7 @@ Public Declare Function GetKeyNameText Lib "user32" Alias "GetKeyNameTextA" (ByV
 Const WH_KEYBOARD = 2
 Sub BeginHK()
     i = GetCurrentThreadId
-    hHook = SetWindowsHookEx(WH_KEYBOARD, AddressOf KeyboardProc, 0, i)
+    hHook = SetWindowsHookEx(WH_KEYBOARD, AddressOf KeyboardProc, 0, i)''Application.Hinstance, 0 最后那两个参数 出现过几种可能
 End Sub
 Public Function KeyboardProc(ByVal code As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
     If code < 0 Then
